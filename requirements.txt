@@ -1,0 +1,3 @@
+shellish>=2.3
+crontab>=0.21.3
+requests>=2.9.1
