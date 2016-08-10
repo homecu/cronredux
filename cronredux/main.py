@@ -2,9 +2,11 @@
 A newage cron service.
 """
 
+import asyncio
 import crontab
 import shellish
 from . import cronparser, notification, scheduler
+from .diag import web
 
 
 class CronReduxCommand(shellish.Command):
@@ -13,10 +15,13 @@ class CronReduxCommand(shellish.Command):
     A reimagined cron executor. """
 
     name = "cronredux"
-    min_resolution = 60
 
     def setup_args(self, parser):
         self.add_file_argument('crontab', help='Crontab file to read.')
+        self.add_argument('--diag-addr', default='0.0.0.0', help='Port for '
+                          'diagnostic web server.')
+        self.add_argument('--diag-port', type=int, default=7907, help='Port '
+                          'for diagnostic web server.')
         self.add_argument('--verbose', action='store_true')
         self.add_argument('--slack-webhook', help='WebHook URL for slack '
                           'notifications.')
@@ -57,8 +62,20 @@ class CronReduxCommand(shellish.Command):
                                            icon_emoji=args.slack_icon_emoji)
         else:
             n = notification.PrintNotifier()
-        sched = scheduler.Scheduler(tasks, args, n)
-        sched.run_forever()
+        loop = asyncio.get_event_loop()
+        sched = scheduler.Scheduler(tasks, args, n, loop)
+        diag = web.DiagService(tasks, args, loop)
+        try:
+            loop.run_until_complete(diag.start())
+            loop.create_task(sched.run())
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            if args.verbose:
+                shellish.vtmlprint("<b>Shutting Down</b>")
+                loop.run_until_complete(diag.cleanup())
+            loop.close()
 
 
 def main():
