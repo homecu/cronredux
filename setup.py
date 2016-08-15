@@ -17,7 +17,7 @@ def long_desc():
 
 setup(
     name='cronredux',
-    version='1',
+    version='2',
     description='A reimagined cron executor',
     author='Justin Mayfield',
     author_email='tooker@gmail.com',

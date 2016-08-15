@@ -9,11 +9,14 @@ About
 * Does not use mail protocols
 * Does not use syslog
 * Slack notifications
+* Concurrency control
+  * You can schedule the number of jobs to run concurrently
+  * Overlap of tasks can be enabled or disabled depending on your use cases.
 
 
 Requirements
 --------
-* `requests` Python Library
+* `asyncio` Python Library
 * `shellish` Python Library
 * `crontab` Python Library
 
@@ -27,3 +30,8 @@ Installation
 Compatibility
 --------
 * Python 3.4+
+
+
+TODO
+--------
+Web server for `/health` endpoint and status info.
