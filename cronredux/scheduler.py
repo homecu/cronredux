@@ -5,9 +5,11 @@ Handle task monitoring and scheduling.
 import asyncio
 import datetime
 import functools
+import resource
 import shellish
 import subprocess
 import time
+import traceback
 from concurrent import futures
 
 
@@ -19,15 +21,33 @@ class Task(object):
         self.cmd = cmd
         self.last_eta = crontab.next()
         self.run_count = 0
+        self.elapsed = 0
+        self.cpu_time = 0
+        self.last_status = None
 
     def __str__(self):
         return '<Task: cmd="%s">' % self.cmd
 
     def __call__(self):
+        start = time.perf_counter()
+        before = resource.getrusage(resource.RUSAGE_CHILDREN)
+        ps = subprocess.Popen(self.cmd, shell=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT,
+                              universal_newlines=True)
+        output, _ = ps.communicate()
+        after = resource.getrusage(resource.RUSAGE_CHILDREN)
+        elapsed = time.perf_counter() - start
+        cpu_time = after.ru_utime - before.ru_utime
+        cpu_time += after.ru_stime - before.ru_stime
         self.run_count += 1
-        return subprocess.check_output(self.cmd, shell=True,
-                                       universal_newlines=True,
-                                       stderr=subprocess.STDOUT)
+        self.elapsed += elapsed
+        self.cpu_time += cpu_time
+        return {
+            "returncode": ps.returncode,
+            "output": output,
+            "cputime": cpu_time,
+            "elapsed": elapsed,
+        }
 
 
 class Scheduler(object):
@@ -81,6 +101,7 @@ class Scheduler(object):
             self._run_task(task)
         except Exception as e:
             shellish.vtmlprint("<red>Unhandled Exception: %s</red>" % e)
+            traceback.print_exc()
 
     def _run_task(self, task):
         job_id = task.run_count  # save for threadsafety
@@ -88,26 +109,22 @@ class Scheduler(object):
             fn = functools.partial(self.notifier.info, 'Starting: `%s`' % task,
                                    footer='Job #%d' % job_id)
             self.loop.call_soon_threadsafe(fn)
-        start = time.monotonic()
-        try:
-            try:
-                output = task()
-            finally:
-                took = datetime.timedelta(seconds=time.monotonic() - start)
-                footer = 'Job #%d - Duration %s' % (job_id, took)
-        except subprocess.CalledProcessError as e:
+        status = task()
+        took = datetime.timedelta(seconds=status['elapsed'])
+        footer = 'Job #%d - Duration %s' % (job_id, took)
+        if status['returncode']:
             title = 'Error: `%s`' % task
-            fn = functools.partial(self.notifier.error, title, raw=e.output,
-                                   footer=footer)
+            fn = functools.partial(self.notifier.error, title,
+                                   raw=status['output'], footer=footer)
             self.loop.call_soon_threadsafe(fn)
-            for x in e.output.splitlines():
-                print('[%s] [%d] [error] %s' % (task.cmd, job_id, x))
+            rc = 'error(%d)' % status['returncode']
         else:
             title = 'Completed: `%s`' % task
             if self.args.notify_exec:
-                fn = functools.partial(self.notifier.info, title, raw=output,
-                                       footer=footer)
+                fn = functools.partial(self.notifier.info, title,
+                                       raw=status['output'], footer=footer)
                 self.loop.call_soon_threadsafe(fn)
-            for x in output.splitlines():
-                print('[%s] [%d] [success] %s' % (task.cmd, job_id, x))
+            rc = 'ok'
+        for x in status['output'].splitlines():
+            print('[%s] [%d] [%s] %s' % (task.cmd, job_id, rc, x))
         self.loop.call_soon_threadsafe(self.wakeup.set)

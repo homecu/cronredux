@@ -61,7 +61,7 @@ class CronReduxCommand(shellish.Command):
             notifier = notification.PrintNotifier()
         loop = asyncio.get_event_loop()
         sched = scheduler.Scheduler(tasks, args, notifier, loop)
-        diag = web.DiagService(tasks, args, loop)
+        diag = web.DiagService(tasks, args, loop, sched=sched)
         try:
             loop.run_until_complete(notifier.setup(loop))
             loop.run_until_complete(diag.start())

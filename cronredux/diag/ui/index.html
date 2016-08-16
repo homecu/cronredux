@@ -1,1 +1,123 @@
-<h1>Hello World</h1>
+<html>
+    <head>
+        <title>Cronredux - Diagnostics</title>
+        <style>
+            html {
+                font-family: sans-serif;
+            }
+
+            .column-holder {
+                display: flex;
+                width: 100%;
+                height: 100%;
+            }
+
+            .column {
+                padding: 10px;
+                width: 50%;
+            }
+            .column:first-child {
+                border-right: 1px solid #999;
+            }
+
+            h1 {
+                font-size: 22px;
+                color: #333;
+            }
+
+            h2 {
+                font-size: 18px;
+                color: #555;
+            }
+
+            table.dict {
+                font-size: 13px;
+                border-collapse: collapse;
+                width: 100%;
+                word-break: break-all;
+            }
+            table.dict td,th {
+                padding: 6px 16px;
+                text-align: left;
+            }
+            table.dict td:first-child,th:first-child {
+                text-align: right;
+                width: 200px;
+            }
+            table.dict td:first-child {
+                color: cornflowerblue;
+            }
+            table.dict tr:nth-child(even) {
+                background-color: #eee;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Cronredux - Diagnostics</h1>
+        <div class="column-holder">
+            <div class="column">
+                <h2>Status</h2>
+                <table class="dict">
+                    <tr><td>Uptime:</td><td>{{ timing.uptime() }}</td></tr>
+                    <tr>
+                        <td>Tasks:</td>
+                        <td>
+                            <ol>
+                            {% for task in tasks %}
+                                <li/>{{ task|e }}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                </table>
+                <h2>Run Arguments</h2>
+                <table class="dict">
+                    {% for key, val in sorted(args.__dict__.items()) %}
+                        <tr><td>{{ key|e }}</td>
+                            <td>{{ val|e }}</td></tr>
+                    {% endfor %}
+                </table>
+                <h2>Platform</h2>
+                <table class="dict">
+                    <tr><td>Platform:</td>
+                        <td>{{ platform.platform }}</td></tr>
+                    <tr><td>System:</td>
+                        <td>{{ platform.system }}</td></tr>
+                    <tr><td>Python:</td>
+                        <td>{{ platform.python }}</td></tr>
+                    <tr><td>Node:</td>
+                        <td>{{ platform.node }}</td></tr>
+                </table>
+                <h2>Environment</h2>
+                <table class="dict">
+                    {% for key, val in sorted(environ.items()) %}
+                        <tr><td>{{ key|e }}</td>
+                            <td>{{ val|e }}</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="column">
+                <h2>Tasks</h2>
+                <table class="dict">
+                    <tr>
+                        <th>Command</th>
+                        <th>Run Count</th>
+                        <th>Next Run</th>
+                        <th>CPU Avg</th>
+                        <th>Elapsed/Run</th>
+                        <th>Elapsed Total</th>
+                    </tr>
+                    {% for task in tasks %}
+                        <tr>
+                            <td><pre>{{ task.cmd|e }}</pre></td>
+                            <td>{{ task.run_count }}</td>
+                            <td>{{ task.crontab.next() }}</td>
+                            <td>{{ task.elapsed and (task.cpu_time / task.elapsed) }}</td>
+                            <td>{{ task.run_count and (task.elapsed / task.run_count) }}</td>
+                            <td>{{ task.elapsed }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
