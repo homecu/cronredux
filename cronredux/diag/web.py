@@ -36,11 +36,10 @@ class DiagService(object):
             "tasks": tasks,
             "platform": self.platform_info,
             "ui_dir": self.ui_dir,
-            "timing": {
-                "startup": datetime.datetime.now(),
-                "uptime": self.uptime,
-            },
-            "timedelta": datetime.timedelta
+            "started": datetime.datetime.now().replace(microsecond=0),
+            "fuzzytimedelta": lambda x: datetime.timedelta(seconds=round(x)),
+            "datetime": datetime.datetime,
+            "id": id
         })
         self.tpl_context = tpl_context
 
@@ -63,9 +62,6 @@ class DiagService(object):
         shellish.vtmlprint('<b>Running diag web server</b>: '
                            '<blue><u>http://%s:%s</u></blue>' % listen)
 
-    def uptime(self):
-        return datetime.datetime.now() - self.tpl_context['timing']['startup']
-
     @asyncio.coroutine
     def index_redir(self, request):
         return web.HTTPFound('/ui/index.html')
@@ -73,15 +69,16 @@ class DiagService(object):
     @asyncio.coroutine
     def health(self, request):
         return web.json_response({
-            "run_args": vars(self.args),
             "platform_info": self.platform_info,
-            "tasks": self.tasks,
+            "tasks": [x.cmd for x in self.tasks],
         })
 
     @asyncio.coroutine
     def tpl_handler(self, request):
         path = request.match_info['path']
-        return aiohttp_jinja2.render_template(path, request, self.tpl_context)
+        context = self.tpl_context.copy()
+        context['request'] = request
+        return aiohttp_jinja2.render_template(path, request, context)
 
     @asyncio.coroutine
     def cleanup(self):

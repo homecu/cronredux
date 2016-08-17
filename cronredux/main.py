@@ -46,10 +46,13 @@ class CronReduxCommand(shellish.Command):
     def run(self, args):
         self.args = args
         tasks = []
-        with args.crontab() as f:
+        if args.verbose:
+            shellish.vtmlprint("<b>Processing crontab file:</b> <red>%s</red>"
+                               % args.crontab)
+        with args.crontab as f:
             for spec, command in cronparser.parsef(f):
                 if args.verbose:
-                    shellish.vtmlprint("<b>Processing:</b> <blue>%s</blue> %s"
+                    shellish.vtmlprint("<b>Adding task:</b> <blue>%s</blue> %s"
                                        % (spec, command))
                 tasks.append(scheduler.Task(crontab.CronTab(spec), command))
         if args.slack_webhook:

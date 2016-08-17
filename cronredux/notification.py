@@ -16,6 +16,7 @@ class PrintNotifier(object):
     def setup(self, loop):
         pass
 
+    @asyncio.coroutine
     def info(self, title, message='', raw='', footer=None):
         shellish.vtmlprint("<b><blue>INFO: %s</blue></b>" % title)
         if message or raw:
@@ -24,14 +25,16 @@ class PrintNotifier(object):
         if footer:
             shellish.vtmlprint("    <dim>%s</dim>" % footer)
 
+    @asyncio.coroutine
     def warning(self, title, message='', raw='', footer=None):
-        shellish.vtmlprint("<b><yellow>WARN: %s</yellow></b>" % title)
+        shellish.vtmlprint("<b>WARN: %s</b>" % title)
         if message or raw:
             for line in (message + raw).splitlines():
-                shellish.vtmlprint("    <yellow>%s</yellow>" % line)
+                shellish.vtmlprint("    %s" % line)
         if footer:
             shellish.vtmlprint("<dim>%s</dim>" % footer)
 
+    @asyncio.coroutine
     def error(self, title, message='', raw='', footer=None):
         shellish.vtmlprint("<b><red>ERROR: %s</red></b>" % title)
         if message or raw:
@@ -92,10 +95,17 @@ class SlackNotifier(object):
 
     @asyncio.coroutine
     def log(self, level, color, title, message=None, raw=None, footer=None):
-        if raw and len(raw) > self.max_raw_size:
-            head = raw[:self.max_raw_size // 2]
-            tail = raw[-self.max_raw_size // 2:]
-            raw = '```%s```\n>..._contents clipped_...\n```%s```' % (head, tail)
+        text = []
+        if message:
+            text.append(message)
+        if raw:
+            if len(raw) > self.max_raw_size:
+                head = raw[:self.max_raw_size // 2]
+                tail = raw[-self.max_raw_size // 2:]
+                text.append('```%s```\n>..._contents clipped_...\n```%s```' % (
+                            head, tail))
+            else:
+                text.append('```%s```' % raw)
         payload = {
             "color": color,
             "pretext": '*%s*' % title,
@@ -103,22 +113,20 @@ class SlackNotifier(object):
             "ts": time.time(),
             "mrkdwn_in": ['text', 'pretext', 'footer']
         }
-        text = []
-        if message:
-            text.append(message)
-        if raw:
-            text.append(raw)
         if text:
             payload['text'] = '\n'.join(text)
         if footer:
             payload['footer'] = footer
         yield from self.post({"attachments": [payload]})
 
+    @asyncio.coroutine
     def info(self, *args, **kwargs):
-        self.loop.create_task(self.log('INFO', '#2200cc', *args, **kwargs))
+        yield from self.log('INFO', '#2200cc', *args, **kwargs)
 
+    @asyncio.coroutine
     def warning(self, *args, **kwargs):
-        self.loop.create_task(self.log('WARN', '#ffcc44', *args, **kwargs))
+        yield from self.log('WARN', '#ffcc44', *args, **kwargs)
 
+    @asyncio.coroutine
     def error(self, *args, **kwargs):
-        self.loop.create_task(self.log('ERROR', '#cc4444', *args, **kwargs))
+        yield from self.log('ERROR', '#cc4444', *args, **kwargs)
