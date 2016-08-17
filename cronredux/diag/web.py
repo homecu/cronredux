@@ -4,15 +4,13 @@ Diagnostic web server endpoints.
 
 import aiohttp_jinja2
 import asyncio
-import datetime
 import jinja2
 import os
+import pendulum
 import platform
 import shellish
 from aiohttp import web
 
-
-app = web.Application()
 
 class DiagService(object):
     """ Diagnostic Web Service. """
@@ -36,10 +34,8 @@ class DiagService(object):
             "tasks": tasks,
             "platform": self.platform_info,
             "ui_dir": self.ui_dir,
-            "started": datetime.datetime.now().replace(microsecond=0),
-            "fuzzytimedelta": lambda x: datetime.timedelta(seconds=round(x)),
-            "datetime": datetime.datetime,
-            "id": id
+            "started": pendulum.now(),
+            "pendulum": pendulum,
         })
         self.tpl_context = tpl_context
 

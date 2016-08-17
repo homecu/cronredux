@@ -10,6 +10,13 @@
             body {
             }
 
+            hr {
+                margin: 6px 6px 26px;
+                background-color: #ddd;
+                border: 0;
+                height: 1px;
+            }
+
             .column-holder {
                 display: flex;
                 flex-flow: row;
@@ -70,9 +77,11 @@
                 <h2>Status</h2>
                 <table class="dict">
                     <tr><td>Started</td>
-                        <td>{{ started }}
-                            ({{ datetime.now().replace(microsecond=0) - started}})</td></tr>
+                        <td>{{ started.to_rfc1123_string() }}
+                            ({{ started.diff_for_humans() }})</td></tr>
                 </table>
+
+                <hr/>
 
                 <h2>Run Arguments</h2>
                 <table class="dict">
@@ -81,6 +90,8 @@
                             <td>{{ val|e }}</td></tr>
                     {% endfor %}
                 </table>
+
+                <hr/>
 
                 <h2>Platform</h2>
                 <table class="dict">
@@ -93,6 +104,8 @@
                     <tr><td>Node</td>
                         <td>{{ platform.node }}</td></tr>
                 </table>
+
+                <hr/>
 
                 <h2>Environment</h2>
                 <table class="dict">
@@ -109,9 +122,8 @@
                 <h2>Task Status</h2>
                 <table class="dict">
                     <tr>
-                        <th>Command</th>
+                        <th>Task</th>
                         <th>Active</th>
-                        <th>Last Status</th>
                         <th>Next Run</th>
                         <th>Runs</th>
                         <th>Elapsed/Run</th>
@@ -119,43 +131,68 @@
                     </tr>
                     {% for task in tasks %}
                         <tr>
-                            <td>{{ task.cmd|e }}</td>
+                            <td>{{ task|e }}</td>
                             <td>
-                                {% for job in sched.active[task] %}
-                                    Job #{{ job }}
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {% if task.last_status %}
-                                    <a href="task.html?id={{ id(task) }}">
-                                        {{ 'ERROR' if task.last_status['returncode'] else 'OK' }}
-                                    </a>
+                                {% if sched.is_active(task) %}
+                                    <b>✓</b>
                                 {% endif %}
                             </td>
-                            <td>{{ fuzzytimedelta(task.crontab.next()) }}</td>
+                            <td>{{ task.next_run() }}</td>
                             <td>{{ task.run_count }}</td>
-                            <td>{{ task.run_count and
-                                   fuzzytimedelta(task.elapsed / task.run_count) }}</td>
-                            <td>{{ fuzzytimedelta(task.elapsed) }}</td>
+                            <td>
+                                {{ task.run_count and
+                                   task.elapsed / task.run_count }}
+                            </td>
+                            <td>{{ task.elapsed }}</td>
                         </tr>
                     {% endfor %}
                 </table>
 
+                <hr/>
+
                 <h2>Active Jobs</h2>
-                <table class="dict">
-                    <tr>
-                        <th>Command</th>
-                        <th>Job</th>
-                    </tr>
-                    {% for task, jobs in sched.active.items() %}
-                        {% for job in jobs %}
+                {% if not sched.active %}
+                    <b><i>No Active Tasks</i></b>
+                {% else %}
+                    <table class="dict">
+                        <tr>
+                            <th>Context</th>
+                            <th>Started</th>
+                        </tr>
+                        {% for context in sched.active %}
                             <tr>
-                                <td>{{ task.cmd|e }}</td>
-                                <td>{{ job }}</td>
+                                <td>{{ context|e }}</td>
+                                <td>{{ context.started.diff_for_humans() }}</td>
                             </tr>
                         {% endfor %}
-                    {% endfor %}
-                </table>
+                    </table>
+                {% endif %}
+
+                <hr/>
+
+                <h2>Recent Activity</h2>
+                {% if not sched.history %}
+                    <b><i>No recent activity</i></b>
+                {% else %}
+                    <table class="dict">
+                        <tr>
+                            <th>Context</th>
+                            <th>Elapsed</th>
+                            <th>State</th>
+                            <th>Return Code</th>
+                            <th>Output Snippit</th>
+                        </tr>
+                        {% for context in sched.history %}
+                            <tr>
+                                <td>{{ context|e }}</td>
+                                <td>{{ context.elapsed }}</td>
+                                <td>{{ context.state }}</td>
+                                <td>{{ context.returncode }}</td>
+                                <td>{{ context.output|truncate(20) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                {% endif %}
 
             </div>
         </div>

@@ -3,43 +3,114 @@ Handle task monitoring and scheduling.
 """
 
 import asyncio
-import datetime
+import collections
+import functools
+import itertools
+import pendulum
 import shellish
 import subprocess
-import time
+import textwrap
 import traceback
+
+
+class TaskExecContext(object):
+    """ A data structure representing a task execution.  Status and info about
+    an invocation is kept here and these instances are used to track activity.
+    """
+
+    def __init__(self, task, loop):
+        self.started = None
+        self.finished = None
+        self.returncode = None
+        self.output = ''
+        self.state = 'init'
+        self.ident = next(task.context_identer)
+        self.task = task
+        self.loop = loop
+
+    def __str__(self):
+        return '<TaskExecContext %d [%s]> for %s' % (self.ident, self.state,
+            self.task)
+
+    def set_start(self):
+        assert self.state == 'init'
+        self.started = pendulum.now()
+        self.state = 'start'
+
+    def set_finish(self, returncode, output):
+        assert self.state == 'start'
+        self.finished = pendulum.now()
+        self.state = 'finish'
+        self.output = output
+        self.returncode = returncode
+
+    @property
+    def elapsed(self):
+        """ Increments for active tasks and when finished gives the total
+        execution time. """
+        if self.started is None:
+            return pendulum.Interval()
+        if self.finished is None:
+            return pendulum.now() - self.started
+        else:
+            return self.finished - self.started
+
+    def is_error(self):
+        if self.state != 'finish':
+            raise TypeError('Task is still running')
+        return not not self.returncode
+
+    def is_done(self):
+        return self.state == 'finished'
+
+    @asyncio.coroutine
+    def run_task(self):
+        self.set_start()
+        process, output = yield from self.task(self.loop)
+        self.set_finish(process.returncode, output.decode())
 
 
 class Task(object):
     """ Encapsulate a repeated task. """
 
+    identer = itertools.count()
+
     def __init__(self, crontab, cmd):
+        self.ident = next(self.identer)
+        self.context_identer = itertools.count()
         self.crontab = crontab
         self.cmd = cmd
         self.last_eta = crontab.next()
         self.run_count = 0
-        self.elapsed = 0
-        self.last_status = None
+        self.elapsed = pendulum.Interval()
 
     def __str__(self):
-        return '<Task: cmd="%s">' % self.cmd
+        cmd = textwrap.shorten(self.cmd, width=16, placeholder="…")
+        return '<Task %d: cmd="%s">' % (self.ident, cmd)
+
+    def next_run(self):
+        """ Estimated time of next run. """
+        return pendulum.Interval(seconds=self.crontab.next())
 
     @asyncio.coroutine
     def __call__(self, loop):
-        start = time.perf_counter()
+        start = pendulum.now()
         ps = yield from asyncio.create_subprocess_shell(self.cmd,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=loop)
-        output, _ = yield from ps.communicate()
-        assert _ is None
-        elapsed = time.perf_counter() - start
+        output = (yield from ps.communicate())[0]
+        self.elapsed += pendulum.now() - start
         self.run_count += 1
-        self.elapsed += elapsed
-        self.last_status = status = {
-            "returncode": ps.returncode,
-            "output": output.decode(),
-            "elapsed": elapsed,
-        }
-        return status
+        return ps, output
+
+    def ready(self):
+        """ Returns true when this task should be run.  If this function is not
+        called as or more frequently than the cron period then it will skip or
+        even never return true.  It is advised to call this at least double the
+        minimum cron period of 1 minute, e.g. 30 seconds. """
+        next_eta = self.crontab.next()
+        r = self.last_eta < next_eta  # rollover occurred == ready
+        self.last_eta = next_eta
+        return r
 
 
 class Scheduler(object):
@@ -50,27 +121,32 @@ class Scheduler(object):
         self.args = args
         self.notifier = notifier
         self.loop = loop
-        self.active = dict((x, []) for x in tasks)
         self.workers_sem = asyncio.Semaphore(self.args.max_concurrency)
         self.wakeup = asyncio.Event(loop=loop)
+        self.active = []
+        self.history = collections.deque(maxlen=100)
+
+    def is_active(self, task):
+        """ Scan task exec list looking for this task. """
+        for x in self.active:
+            if x.task is task:
+                return True
+        return False
 
     @asyncio.coroutine
     def run(self):
         """ Babysit the task scheduling process. """
         while True:
             for task in self.tasks:
-                eta = task.crontab.next()
-                # look for rollover as our exec trigger.
-                if eta > task.last_eta:
-                    if self.active[task] and not self.args.allow_overlap:
+                if task.ready():
+                    if not self.args.allow_overlap and self.is_active(task):
                         yield from self.notifier.warning('Skipping `%s`' %
                                                          task,
                                                         'Previous task is '
                                                         'still active.')
                     else:
                         yield from self.workers_sem.acquire()
-                        self.loop.create_task(self.run_task(task))
-                task.last_eta = eta
+                        yield from self.enqueue_task(task)
             try:
                 yield from asyncio.wait_for(self.wakeup.wait(), 1)
             except asyncio.TimeoutError:
@@ -79,34 +155,42 @@ class Scheduler(object):
                 self.wakeup.clear()
 
     @asyncio.coroutine
-    def run_task(self, task):
-        job_id = task.run_count
-        self.active[task].append(job_id)
+    def enqueue_task(self, task):
+        """ Create (and return) the task status and run the task in the
+        background. """
+        context = TaskExecContext(task, self.loop)
+        self.active.append(context)
+        self.history.appendleft(context)
+        f = self.loop.create_task(self.task_runner(context))
+        f.context = context
+        f.add_done_callback(self.on_task_done)
+
+    @asyncio.coroutine
+    def task_runner(self, context):
+        """ Background runner for actually executing the command. """
+        if self.args.notify_exec:
+            yield from self.notifier.info('Starting: `%s`' % context.task,
+                                          footer='Exec #%d' % context.ident)
+        yield from context.run_task()
+        footer = 'Exec #%d - Duration %s' % (context.ident,
+            context.elapsed)
+        if context.returncode:
+            yield from self.notifier.error('Error: `%s`' % context.task,
+                                           raw=context.output, footer=footer)
+        elif self.args.notify_exec:
+            yield from self.notifier.info('Completed: `%s`' % context.task,
+                                          raw=context.output, footer=footer)
+        for x in context.output.splitlines():
+            print('[%s] [job:%d] [exit:%d] %s' % (context.task.cmd,
+                  context.ident, context.returncode, x))
+
+    def on_task_done(self, f):
         try:
-            yield from self._run_task(task)
+            f.result()
         except Exception as e:
             shellish.vtmlprint("<red>Unhandled Exception: %s</red>" % e)
             traceback.print_exc()
         finally:
-            self.active[task].remove(job_id)
+            self.active.remove(f.context)
             self.workers_sem.release()
             self.wakeup.set()
-
-    @asyncio.coroutine
-    def _run_task(self, task):
-        job_id = task.run_count  # save for threadsafety
-        if self.args.notify_exec:
-            yield from self.notifier.info('Starting: `%s`' % task,
-                                          footer='Job #%d' % job_id)
-        status = yield from task(self.loop)
-        took = datetime.timedelta(seconds=status['elapsed'])
-        footer = 'Job #%d - Duration %s' % (job_id, took)
-        if status['returncode']:
-            yield from self.notifier.error('Error: `%s`' % task,
-                                           raw=status['output'], footer=footer)
-        elif self.args.notify_exec:
-            yield from self.notifier.info('Completed: `%s`' % task,
-                                          raw=status['output'], footer=footer)
-        for x in status['output'].splitlines():
-            print('[%s] [job:%d] [exit:%d] %s' % (task.cmd, job_id,
-                  status['returncode'], x))
