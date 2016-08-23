@@ -85,7 +85,8 @@ class Task(object):
         self.elapsed = pendulum.Interval()
 
     def __str__(self):
-        cmd = textwrap.shorten(self.cmd, width=16, placeholder="…")
+        dots = shellish.beststr("…", '...')
+        cmd = textwrap.shorten(self.cmd, width=40, placeholder=dots)
         return '<Task %d: cmd="%s">' % (self.ident, cmd)
 
     def next_run(self):
@@ -162,8 +163,7 @@ class Scheduler(object):
         self.active.append(context)
         self.history.appendleft(context)
         f = self.loop.create_task(self.task_runner(context))
-        f.context = context
-        f.add_done_callback(self.on_task_done)
+        f.add_done_callback(functools.partial(self.on_task_done, context))
 
     @asyncio.coroutine
     def task_runner(self, context):
@@ -175,22 +175,22 @@ class Scheduler(object):
         footer = 'Exec #%d - Duration %s' % (context.ident,
             context.elapsed)
         if context.returncode:
-            yield from self.notifier.error('Error: `%s`' % context.task,
+            yield from self.notifier.error('Failed: `%s`' % context.task,
                                            raw=context.output, footer=footer)
         elif self.args.notify_exec:
-            yield from self.notifier.info('Completed: `%s`' % context.task,
+            yield from self.notifier.info('Succeeded: `%s`' % context.task,
                                           raw=context.output, footer=footer)
         for x in context.output.splitlines():
             print('[%s] [job:%d] [exit:%d] %s' % (context.task.cmd,
                   context.ident, context.returncode, x))
 
-    def on_task_done(self, f):
+    def on_task_done(self, context, f):
         try:
             f.result()
         except Exception as e:
-            shellish.vtmlprint("<red>Unhandled Exception: %s</red>" % e)
             traceback.print_exc()
+            raise SystemExit("Unrecoverable Error: %s" % e)
         finally:
-            self.active.remove(f.context)
+            self.active.remove(context)
             self.workers_sem.release()
             self.wakeup.set()

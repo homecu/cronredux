@@ -1,0 +1,73 @@
+html {
+    font-family: sans-serif;
+}
+
+body {
+}
+
+hr {
+    margin: 6px 6px 26px;
+    background-color: #ddd;
+    border: 0;
+    height: 1px;
+}
+
+.column-holder {
+    display: flex;
+    flex-flow: row;
+    width: 100%;
+    height: auto;
+}
+
+.column {
+    padding: 10px;
+    flex: 1;
+}
+.split {
+    width: 1px;
+    background: #ccc;
+    margin: 20px 10px;
+}
+
+h1 {
+    font-size: 22px;
+    color: #333;
+}
+
+h2 {
+    font-size: 18px;
+    color: #555;
+}
+
+table.dict {
+    font-size: 13px;
+    border-collapse: collapse;
+    width: 100%;
+}
+table.dict td,th {
+    padding: 6px 16px;
+    text-align: left;
+}
+table.dict .prewrap {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: monospace;
+}
+table.dict td:first-child,th:first-child {
+    text-align: right;
+    width: 200px;
+}
+table.dict td:first-child {
+    color: cornflowerblue;
+}
+table.dict tr:nth-child(even) {
+    background-color: #eee;
+}
+
+pre.console {
+    background: #fdfdfd;
+    color: black;
+    border: 1px solid grey;
+    overflow: auto;
+    padding: 10px;
+}

@@ -24,20 +24,23 @@ class DiagService(object):
     }
     ui_dir = os.path.join(os.path.dirname(__file__), 'ui')
 
-    def __init__(self, tasks, args, loop, **tpl_context):
+    def __init__(self, tasks, args, loop, sched=None):
         self.tasks = tasks
         self.args = args
         self.loop = loop
-        tpl_context.update({
+        self.tpl_context = {
             "environ": os.environ,
             "args": args,
             "tasks": tasks,
+            "tasks_by_id": dict((x.ident, x) for x in tasks),
+            "task_execs": lambda: dict(((x.task.ident, x.ident), x)
+                                       for x in sched.history),
             "platform": self.platform_info,
             "ui_dir": self.ui_dir,
             "started": pendulum.now(),
             "pendulum": pendulum,
-        })
-        self.tpl_context = tpl_context
+            "sched": sched
+        }
 
     @asyncio.coroutine
     def start(self):

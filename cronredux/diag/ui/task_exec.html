@@ -1,0 +1,50 @@
+{% set taskid = request.GET.get('taskid')|int(default=-1) %}
+{% set execid = request.GET.get('execid')|int(default=-1) %}
+{% if taskid >= 0 and execid >= 0 and (taskid, execid) in task_execs() %}
+    {% set exec = task_execs()[taskid, execid] %}
+    {% set title = exec|e %}
+{% else %}
+    {% set exec = None %}
+    {% set title = "Task Exec Not Found" %}
+{% endif %}
+<html>
+    <head>
+        <title>Cronredux - {{ title }}</title>
+        <link href="static/theme.css" rel="stylesheet" type="text/css"/>
+    </head>
+    <body>
+        <a href="index.html">Back</a>
+        <h1>Cronredux - {{ title }}</h1>
+
+        {% if exec %}
+            <table class="dict">
+                <tr><td>Task Exec</td><td>{{exec|e}}</td></tr>
+                <tr><td>Active</td><td>{{ sched.is_active(exec.task) }}</td></tr>
+                <tr><td>State</td><td>{{ exec.state }}</td></tr>
+                <tr>
+                    <td>Started</td>
+                    <td>
+                        {{ exec.started.to_rfc1123_string() }} 
+                        ({{ exec.started.diff_for_humans() }})
+                    </td>
+                </tr>
+                <tr>
+                    <td>Finished</td>
+                    <td>
+                        {% if exec.finished %}
+                            {{ exec.finished.to_rfc1123_string() }} 
+                            ({{ exec.finished.diff_for_humans() }})
+                        {% else %}
+                            <i>-</i>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr><td>Elapsed Run Time</td><td>{{ exec.elapsed }}</td></tr>
+                <tr><td>Return Code</td><td>{{ exec.returncode or '-' }}</td></tr>
+                <tr><td>Output</td><td><pre class="console">{{ exec.output|e }}</pre></td></tr>
+            </table>
+
+        {% endif %}
+
+    </body>
+</html>

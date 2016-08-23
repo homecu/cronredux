@@ -1,143 +1,37 @@
+{% set taskid = request.GET.get('id')|int(default=-1) %}
+{% if taskid >= 0 and taskid in tasks_by_id %}
+    {% set task = tasks_by_id[taskid] %}
+    {% set title = task|string|e %}
+{% else %}
+    {% set task = None %}
+    {% set title = "Task Not Found" %}
+{% endif %}
 <html>
     <head>
-        <meta http-equiv="refresh" content="2"/>
-        <title>Cronredux - Task</title>
-        <style>
-            html {
-                font-family: sans-serif;
-            }
-
-            h1 {
-                font-size: 22px;
-                color: #333;
-            }
-
-            h2 {
-                font-size: 18px;
-                color: #555;
-            }
-
-            table.dict {
-                font-size: 13px;
-                border-collapse: collapse;
-                width: 100%;
-            }
-            table.dict td,th {
-                padding: 6px 16px;
-                text-align: left;
-            }
-            table.dict .prewrap {
-                white-space: pre-wrap;
-                word-break: break-all;
-                font-family: monospace;
-            }
-            table.dict td:first-child,th:first-child {
-                text-align: right;
-                width: 200px;
-            }
-            table.dict td:first-child {
-                color: cornflowerblue;
-            }
-            table.dict tr:nth-child(even) {
-                background-color: #eee;
-            }
-        </style>
+        <title>Cronredux - {{ title }}</title>
+        <link href="static/theme.css" rel="stylesheet" type="text/css"/>
     </head>
     <body>
-        <h1>Cronredux - Task</h1>
-        {% set taskid = request.GET['id'] %}
-        {% for task in tasks %}
-            {% if id(task) == taskid %}
-                <h1> GOT IT<h1>
-                {% set gotit = True %}
-            {% endif %}
-        {% if not gotit %}
-            <h1>Task ID not found: {{ taskid }}</h1>
+        <a href="index.html">Back</a>
+        <h1>Cronredux - {{ title }}</h1>
+
+        {% if task %}
+            <table class="dict">
+                <tr><td>Task</td><td>{{task|e}}</td></tr>
+                <tr><td>Active</td><td>{{ sched.is_active(task) }}</td></tr>
+                <tr><td>Next Run</td><td>{{ task.next_run() }}</td></tr>
+                <tr><td>Runs</td><td>{{ task.run_count }}</td></tr>
+                <tr>
+                    <td>Elapsed/Run</td>
+                    <td>
+                        {{ task.run_count and
+                           task.elapsed / task.run_count }}
+                    </td>
+                </tr>
+                <tr><td>Elapsed Total</td><td>{{ task.elapsed }}</td></tr>
+            </table>
+
         {% endif %}
-                <h2>Status</h2>
-                <table class="dict">
-                    <tr><td>Started</td>
-                        <td>{{ started }}
-                            ({{ datetime.now().replace(microsecond=0) - started}})</td></tr>
-                </table>
 
-                <h2>Run Arguments</h2>
-                <table class="dict">
-                    {% for key, val in sorted(args.__dict__.items()) %}
-                        <tr><td>{{ key|e }}</td>
-                            <td>{{ val|e }}</td></tr>
-                    {% endfor %}
-                </table>
-
-                <h2>Platform</h2>
-                <table class="dict">
-                    <tr><td>Platform</td>
-                        <td>{{ platform.platform }}</td></tr>
-                    <tr><td>System</td>
-                        <td>{{ platform.system }}</td></tr>
-                    <tr><td>Python</td>
-                        <td>{{ platform.python }}</td></tr>
-                    <tr><td>Node</td>
-                        <td>{{ platform.node }}</td></tr>
-                </table>
-
-                <h2>Environment</h2>
-                <table class="dict">
-                    {% for key, val in sorted(environ.items()) %}
-                        <tr><td>{{ key|e }}</td>
-                            <td class="prewrap">{{ val|e }}</td></tr>
-                    {% endfor %}
-                </table>
-
-                <h2>Task Status</h2>
-                <table class="dict">
-                    <tr>
-                        <th>Command</th>
-                        <th>Active</th>
-                        <th>Last Status</th>
-                        <th>Next Run</th>
-                        <th>Runs</th>
-                        <th>Elapsed/Run</th>
-                        <th>Elapsed Total</th>
-                    </tr>
-                    {% for task in tasks %}
-                        <tr>
-                            <td>{{ task.cmd|e }}</td>
-                            <td>
-                                {% for job in sched.active[task] %}
-                                    Job #{{ job }}
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {% if task.last_status %}
-                                    <a href="task/?id={{ id(task) }}">
-                                        {{ 'ERROR' if task.last_status['returncode'] else 'OK' }}
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>{{ fuzzytimedelta(task.crontab.next()) }}</td>
-                            <td>{{ task.run_count }}</td>
-                            <td>{{ task.run_count and
-                                   fuzzytimedelta(task.elapsed / task.run_count) }}</td>
-                            <td>{{ fuzzytimedelta(task.elapsed) }}</td>
-                        </tr>
-                    {% endfor %}
-                </table>
-
-                <h2>Active Jobs</h2>
-                <table class="dict">
-                    <tr>
-                        <th>Command</th>
-                        <th>Job</th>
-                    </tr>
-                    {% for task, jobs in sched.active.items() %}
-                        {% for job in jobs %}
-                            <tr>
-                                <td>{{ task.cmd|e }}</td>
-                                <td>{{ job }}</td>
-                            </tr>
-                        {% endfor %}
-                    {% endfor %}
-                </table>
     </body>
 </html>
