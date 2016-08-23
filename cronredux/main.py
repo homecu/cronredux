@@ -33,10 +33,10 @@ class CronReduxCommand(shellish.Command):
                           'slack icon emoji.')
         self.add_argument('--notify-exec', action='store_true',
                           help='Enable notifications for each task execution.')
-        self.add_argument('--slow-exec-warning', type=float, default=60,
+        self.add_argument('--XXX-slow-exec-warning', type=float, default=60,
                           help='Time in seconds before a warning is generated '
                           'about slow task execution.')
-        self.add_argument('--backlog-warning', type=float, default=60,
+        self.add_argument('--XXX-backlog-warning', type=float, default=60,
                           help='Time in seconds before a warning is generated '
                           'about a delayed task execution due to a backlog.')
         self.add_argument('--max-concurrency', type=int, default=10, help='Max tasks '
