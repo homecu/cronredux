@@ -30,6 +30,7 @@ setup(
     entry_points = {
         'console_scripts': ['cronredux=cronredux.main:main'],
     },
+    include_package_data=True,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
