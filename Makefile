@@ -1,4 +1,4 @@
-VERSION:=2
+VERSION:=2.1
 
 SOURCES:= \
 	MANIFEST.in \
