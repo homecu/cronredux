@@ -24,7 +24,7 @@ class DiagService(object):
     }
     ui_dir = os.path.join(os.path.dirname(__file__), 'ui')
 
-    def __init__(self, tasks, args, loop, sched=None):
+    def __init__(self, tasks, args, loop, sched=None, plain=False):
         self.tasks = tasks
         self.args = args
         self.loop = loop
@@ -41,6 +41,7 @@ class DiagService(object):
             "pendulum": pendulum,
             "sched": sched
         }
+        self.plain_output = plain
 
     @asyncio.coroutine
     def start(self):
@@ -59,7 +60,8 @@ class DiagService(object):
         listen = self.args.diag_addr, self.args.diag_port
         self.server = yield from self.loop.create_server(self.handler, *listen)
         shellish.vtmlprint('<b>Running diag web server</b>: '
-                           '<blue><u>http://%s:%s</u></blue>' % listen)
+                           '<blue><u>http://%s:%s</u></blue>' % listen,
+                           plain=self.plain_output)
 
     @asyncio.coroutine
     def index_redir(self, request):
