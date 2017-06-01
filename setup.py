@@ -1,6 +1,8 @@
+import os
 from setuptools import setup, find_packages
 
 README = 'README.md'
+VERSION = os.environ.get('CRONREDUX_VERSION', 'dev-build')
 
 with open('requirements.txt') as f:
     requirements = f.readlines()
@@ -17,7 +19,7 @@ def long_desc():
 
 setup(
     name='cronredux',
-    version='2',
+    version=VERSION,
     description='A reimagined cron executor',
     author='Justin Mayfield',
     author_email='tooker@gmail.com',
