@@ -5,6 +5,7 @@ A newage cron service.
 import asyncio
 import crontab
 import shellish
+import cronredux
 from . import cronparser, notification, scheduler
 from .diag import web
 
@@ -42,18 +43,21 @@ class CronReduxCommand(shellish.Command):
         self.add_argument('--max-concurrency', type=int, default=10, help='Max tasks '
                           'that will be allowed to run concurrently.')
         self.add_argument('--allow-overlap', action='store_true')
+        self.add_argument('--plain', action='store_true')
 
     def run(self, args):
         self.args = args
         tasks = []
+        if args.plain:
+            cronredux.PLAIN_OUTPUT = True
         if args.verbose:
             shellish.vtmlprint("<b>Processing crontab file:</b> <red>%s</red>"
-                               % args.crontab)
+                               % args.crontab, plain=cronredux.PLAIN_OUTPUT)
         with args.crontab as f:
             for spec, command in cronparser.parsef(f):
                 if args.verbose:
                     shellish.vtmlprint("<b>Adding task:</b> <blue>%s</blue> %s"
-                                       % (spec, command))
+                                       % (spec, command), plain=cronredux.PLAIN_OUTPUT)
                 tasks.append(scheduler.Task(crontab.CronTab(spec), command))
         if args.slack_webhook:
             notifier = notification.SlackNotifier(args.slack_webhook,
@@ -64,7 +68,11 @@ class CronReduxCommand(shellish.Command):
             notifier = notification.PrintNotifier()
         loop = asyncio.get_event_loop()
         sched = scheduler.Scheduler(tasks, args, notifier, loop)
-        diag = web.DiagService(tasks, args, loop, sched=sched)
+        diag = web.DiagService(tasks,
+                               args,
+                               loop,
+                               sched=sched,
+                               plain=cronredux.PLAIN_OUTPUT)
         try:
             loop.run_until_complete(notifier.setup(loop))
             loop.run_until_complete(diag.start())
@@ -74,7 +82,8 @@ class CronReduxCommand(shellish.Command):
             pass
         finally:
             if args.verbose:
-                shellish.vtmlprint("<b>Shutting Down</b>")
+                shellish.vtmlprint("<b>Shutting Down</b>",
+                                   plain=cronredux.PLAIN_OUTPU)
                 loop.run_until_complete(diag.cleanup())
             loop.close()
 

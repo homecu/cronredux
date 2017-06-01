@@ -7,6 +7,7 @@ import asyncio
 import json
 import shellish
 import time
+import cronredux
 
 
 class PrintNotifier(object):
@@ -18,30 +19,39 @@ class PrintNotifier(object):
 
     @asyncio.coroutine
     def info(self, title, message='', raw='', footer=None):
-        shellish.vtmlprint("<b><blue>INFO: %s</blue></b>" % title)
+        shellish.vtmlprint("<b><blue>INFO: %s</blue></b>" % title,
+                           plain=cronredux.PLAIN_OUTPUT)
         if message or raw:
             for line in (message + raw).splitlines():
-                shellish.vtmlprint("    <blue>%s</blue>" % line)
+                shellish.vtmlprint("    <blue>%s</blue>" % line,
+                                   plain=cronredux.PLAIN_OUTPUT)
         if footer:
-            shellish.vtmlprint("    <dim>%s</dim>" % footer)
+            shellish.vtmlprint("    <dim>%s</dim>" % footer,
+                               plain=cronredux.PLAIN_OUTPUT)
 
     @asyncio.coroutine
     def warning(self, title, message='', raw='', footer=None):
-        shellish.vtmlprint("<b>WARN: %s</b>" % title)
+        shellish.vtmlprint("<b>WARN: %s</b>" % title,
+                           plain=cronredux.PLAIN_OUTPUT)
         if message or raw:
             for line in (message + raw).splitlines():
-                shellish.vtmlprint("    %s" % line)
+                shellish.vtmlprint("    %s" % line,
+                                   plain=cronredux.PLAIN_OUTPUT)
         if footer:
-            shellish.vtmlprint("<dim>%s</dim>" % footer)
+            shellish.vtmlprint("<dim>%s</dim>" % footer,
+                               plain=cronredux.PLAIN_OUTPUT)
 
     @asyncio.coroutine
     def error(self, title, message='', raw='', footer=None):
-        shellish.vtmlprint("<b><red>ERROR: %s</red></b>" % title)
+        shellish.vtmlprint("<b><red>ERROR: %s</red></b>" % title,
+                           plain=cronredux.PLAIN_OUTPUT)
         if message or raw:
             for line in (message + raw).splitlines():
-                shellish.vtmlprint("    <red>%s</red>" % line)
+                shellish.vtmlprint("    <red>%s</red>" % line,
+                                   plain=cronredux.PLAIN_OUTPUT)
         if footer:
-            shellish.vtmlprint("    <dim>%s</dim>" % footer)
+            shellish.vtmlprint("    <dim>%s</dim>" % footer,
+                               plain=cronredux.PLAIN_OUTPUT)
 
 
 class SlackNotifier(object):
@@ -82,14 +92,15 @@ class SlackNotifier(object):
                     if resp.status == 429:  # rate limited
                         retry = content['retry_after']
                         shellish.vtmlprint('<red>Slack Rate Limit Reached: '
-                                           'Retry in %f seconds.</red>' %
-                                           retry)
+                                           'Retry in %f seconds.</red>' % retry,
+                                           plain=cronredux.PLAIN_OUTPUT)
                         yield from asyncio.sleep(retry)
                         continue
                     else:
                         shellish.vtmlprint('<b><red>Slack Post Failed:</red> '
                                            '(%d) - %s</b>' % (resp.status,
-                                           content))
+                                           content),
+                                           plain=cronredux.PLAIN_OUTPUT)
                 yield from resp.release()
                 break
 
