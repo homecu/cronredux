@@ -83,7 +83,7 @@ class CronReduxCommand(shellish.Command):
         finally:
             if args.verbose:
                 shellish.vtmlprint("<b>Shutting Down</b>",
-                                   plain=cronredux.PLAIN_OUTPU)
+                                   plain=cronredux.PLAIN_OUTPUT)
                 loop.run_until_complete(diag.cleanup())
             loop.close()
 
