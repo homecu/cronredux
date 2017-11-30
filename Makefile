@@ -16,6 +16,7 @@ test: $(SOURCES)
 
 .PHONY: clean
 clean:
+	-rm -r build
 	-rm -r dist
 	-rm -r .tox
 	-rm -r cronredux.egg-info
