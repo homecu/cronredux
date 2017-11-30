@@ -17,19 +17,20 @@ def long_desc():
     else:
         return pypandoc.convert(README, 'rst')
 
+
 setup(
     name='cronredux',
     version=VERSION,
     description='A reimagined cron executor',
-    author='Justin Mayfield',
-    author_email='tooker@gmail.com',
+    author='HomeCU',
+    author_email='developers@homecu.com',
     url='https://github.com/homecu/cronredux/',
     license='MIT',
     long_description=long_desc(),
     packages=find_packages(),
     test_suite='test',
     install_requires=requirements,
-    entry_points = {
+    entry_points={
         'console_scripts': ['cronredux=cronredux.main:main'],
     },
     include_package_data=True,
