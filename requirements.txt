@@ -1,5 +1,5 @@
-aiohttp>=0.22.5
-shellish>=2.4
-crontab>=0.21.3
-aiohttp_jinja2>=0.8.0
+aiohttp==0.22.5
+shellish==2.4
+crontab==0.21.3
+aiohttp_jinja2==0.8.0
 pendulum==0.6.0
