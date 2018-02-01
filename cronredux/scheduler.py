@@ -30,7 +30,7 @@ class TaskExecContext(object):
 
     def __str__(self):
         return '<TaskExecContext %d [%s]> for %s' % (self.ident, self.state,
-            self.task)
+                                                     self.task)
 
     def set_start(self):
         assert self.state == 'init'
@@ -96,8 +96,11 @@ class Task(object):
     @asyncio.coroutine
     def __call__(self, loop):
         start = pendulum.now()
-        ps = yield from asyncio.create_subprocess_shell(self.cmd,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, loop=loop)
+        ps = yield from asyncio.create_subprocess_shell(
+            self.cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            loop=loop)
         output = (yield from ps.communicate())[0]
         self.elapsed += pendulum.now() - start
         self.run_count += 1
@@ -143,8 +146,8 @@ class Scheduler(object):
                     if not self.args.allow_overlap and self.is_active(task):
                         yield from self.notifier.warning('Skipping `%s`' %
                                                          task,
-                                                        'Previous task is '
-                                                        'still active.')
+                                                         'Previous task is '
+                                                         'still active.')
                     else:
                         yield from self.workers_sem.acquire()
                         yield from self.enqueue_task(task)
@@ -173,7 +176,7 @@ class Scheduler(object):
                                           footer='Exec #%d' % context.ident)
         yield from context.run_task()
         footer = 'Exec #%d - Duration %s' % (context.ident,
-            context.elapsed)
+                                             context.elapsed)
         if context.returncode:
             yield from self.notifier.error('Failed: `%s`' % context.task,
                                            raw=context.output, footer=footer)
