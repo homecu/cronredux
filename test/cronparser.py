@@ -11,6 +11,7 @@ class ParserTests(unittest.TestCase):
     def test_parse_empty(self):
         cases = [
             (''),
+            ('# * * * * * totally not running this\n'),
         ]
         for case in cases:
             with self.subTest(case):

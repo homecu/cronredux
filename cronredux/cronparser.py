@@ -25,6 +25,9 @@ def parseline(line):
     of no-op we return None. """
     if not line:
         return
+    # return None if line is commented
+    if line[0] == '#':
+        return
     if line[0] == '@':
         return tuple(line.split(' ', 1))
     else:
