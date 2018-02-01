@@ -9,7 +9,12 @@ from cronredux import cronparser
 class ParserTests(unittest.TestCase):
 
     def test_parse_empty(self):
-        self.assertFalse(cronparser.parseline(''))
+        cases = [
+            (''),
+        ]
+        for case in cases:
+            with self.subTest(case):
+                self.assertFalse(cronparser.parseline(case))
 
     def test_parse_simple_spec(self):
         valid = [
