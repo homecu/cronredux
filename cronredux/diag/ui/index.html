@@ -6,8 +6,8 @@
     </head>
     <body>
         <h1>Cronredux - Diagnostics</h1>
-        <div class="column-holder">
-            <div class="column">
+        <div class="box-holder">
+            <div class="box">
                 <h2>Status</h2>
                 <table class="dict">
                     <tr><td>Started</td>
@@ -20,39 +20,16 @@
                 <h2>Run Arguments</h2>
                 <table class="dict">
                     {% for key, val in sorted(args.__dict__.items()) %}
-                        <tr><td>{{ key|e }}</td>
-                            <td>{{ val|e }}</td></tr>
+                    <tr><td>{{ key|e }}</td>
+                        <td>{{ val|e }}</td></tr>
                     {% endfor %}
                 </table>
 
-                <hr/>
-
-                <h2>Platform</h2>
-                <table class="dict">
-                    <tr><td>Platform</td>
-                        <td>{{ platform.platform }}</td></tr>
-                    <tr><td>System</td>
-                        <td>{{ platform.system }}</td></tr>
-                    <tr><td>Python</td>
-                        <td>{{ platform.python }}</td></tr>
-                    <tr><td>Node</td>
-                        <td>{{ platform.node }}</td></tr>
-                </table>
-
-                <hr/>
-
-                <h2>Environment</h2>
-                <table class="dict">
-                    {% for key, val in sorted(environ.items()) %}
-                        <tr><td>{{ key|e }}</td>
-                            <td class="prewrap">{{ val|e }}</td></tr>
-                    {% endfor %}
-                </table>
             </div>
 
-            <div class="split"></div>
+            <hr/>
 
-            <div class="column">
+            <div class="box">
                 <h2>Task Status</h2>
                 <table class="dict">
                     <tr>
@@ -64,75 +41,110 @@
                         <th>Elapsed Total</th>
                     </tr>
                     {% for task in tasks %}
-                        <tr>
-                            <td><a href="task.html?id={{task.ident}}">{{ task|e }}</a></td>
-                            <td>
-                                {% if sched.is_active(task) %}
-                                    <b>✓</b>
-                                {% endif %}
-                            </td>
-                            <td>{{ task.next_run() }}</td>
-                            <td>{{ task.run_count }}</td>
-                            <td>
-                                {{ task.run_count and
-                                   task.elapsed / task.run_count }}
-                            </td>
-                            <td>{{ task.elapsed }}</td>
-                        </tr>
+                    <tr>
+                        <td><a href="task.html?id={{task.ident}}">{{ task|e }}</a></td>
+                        <td>
+                            {% if sched.is_active(task) %}
+                            <b>✓</b>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.next_run() }}</td>
+                        <td>{{ task.run_count }}</td>
+                        <td>
+                            {{ task.run_count and
+                            task.elapsed / task.run_count }}
+                        </td>
+                        <td>{{ task.elapsed }}</td>
+                    </tr>
                     {% endfor %}
                 </table>
 
-                <hr/>
+            </div>
+
+            <hr/>
+
+            <div class="box">
 
                 <h2>Active Jobs</h2>
                 {% if not sched.active %}
-                    <b><i>No Active Tasks</i></b>
+                <b><i>No Active Tasks</i></b>
                 {% else %}
-                    <table class="dict">
-                        <tr>
-                            <th>Context</th>
-                            <th>Started</th>
-                        </tr>
-                        {% for context in sched.active %}
-                            <tr>
-                                <td><a href="task_exec.html?taskid={{context.task.ident}}&execid={{context.ident}}">
-                                    {{ context|e }}
-                                </a></td>
-                                <td>{{ context.started.diff_for_humans() }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                {% endif %}
-
-                <hr/>
-
-                <h2>Recent Activity</h2>
-                {% if not sched.history %}
-                    <b><i>No recent activity</i></b>
-                {% else %}
-                    <table class="dict">
-                        <tr>
-                            <th>Context</th>
-                            <th>Elapsed</th>
-                            <th>State</th>
-                            <th>Return Code</th>
-                            <th>Output Snippit</th>
-                        </tr>
-                        {% for context in sched.history %}
-                            <tr>
-                                <td><a href="task_exec.html?taskid={{context.task.ident}}&execid={{context.ident}}">
-                                    {{ context|e }}
-                                </a></td>
-                                <td>{{ context.elapsed }}</td>
-                                <td>{{ context.state }}</td>
-                                <td>{{ context.returncode }}</td>
-                                <td>{{ context.output|truncate(20) }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
+                <table class="dict">
+                    <tr>
+                        <th>Context</th>
+                        <th>Started</th>
+                    </tr>
+                    {% for context in sched.active %}
+                    <tr>
+                        <td><a href="task_exec.html?taskid={{context.task.ident}}&execid={{context.ident}}">
+                                {{ context|e }}
+                        </a></td>
+                        <td>{{ context.started.diff_for_humans() }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
                 {% endif %}
 
             </div>
+
+            <hr/>
+
+            <div class="box">
+                <h2>Recent Activity</h2>
+                {% if not sched.history %}
+                <b><i>No recent activity</i></b>
+                {% else %}
+                <table class="dict">
+                    <tr>
+                        <th>Context</th>
+                        <th>Elapsed</th>
+                        <th>State</th>
+                        <th>Return Code</th>
+                        <th>Output Snippit</th>
+                    </tr>
+                    {% for context in sched.history %}
+                    <tr>
+                        <td><a href="task_exec.html?taskid={{context.task.ident}}&execid={{context.ident}}">
+                                {{ context|e }}
+                        </a></td>
+                        <td>{{ context.elapsed }}</td>
+                        <td>{{ context.state }}</td>
+                        <td>{{ context.returncode }}</td>
+                        <td>{{ context.output|truncate(20) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% endif %}
+
+            </div>
+
+            <hr/>
+
+            <div class="box">
+                <h2>Platform</h2>
+                <table class="dict">
+                    <tr><td>Platform</td>
+                        <td>{{ platform.platform }}</td></tr>
+                    <tr><td>System</td>
+                        <td>{{ platform.system }}</td></tr>
+                    <tr><td>Python</td>
+                        <td>{{ platform.python }}</td></tr>
+                    <tr><td>Node</td>
+                        <td>{{ platform.node }}</td></tr>
+                </table>
+            </div>
+            <hr/>
+
+            <div class="box-full">
+                <h2>Environment</h2>
+                <table class="dict">
+                    {% for key, val in sorted(environ.items()) %}
+                    <tr><td>{{ key|e }}</td>
+                        <td class="prewrap">{{ val|e }}</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+
         </div>
     </body>
 </html>

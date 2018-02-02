@@ -12,16 +12,20 @@ hr {
     height: 1px;
 }
 
-.column-holder {
+.box-holder {
     display: flex;
-    flex-flow: row;
+    flex-flow: row wrap;
     width: 100%;
     height: auto;
 }
 
-.column {
-    padding: 10px;
-    flex: 1;
+.box {
+    padding: 1em;
+    flex: 1 0 40%;
+}
+.box-full {
+    padding: 1em;
+    flex: 1 0 95%;
 }
 .split {
     width: 1px;
