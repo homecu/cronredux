@@ -6,8 +6,8 @@ import asyncio
 import crontab
 import shellish
 import cronredux
-from . import cronparser, notification, scheduler
-from .diag import web
+from cronredux import cronparser, notification, scheduler
+from cronredux.diag import web
 
 
 class CronReduxCommand(shellish.Command):
