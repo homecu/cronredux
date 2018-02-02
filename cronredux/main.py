@@ -93,3 +93,7 @@ class CronReduxCommand(shellish.Command):
 
 def main():
     CronReduxCommand()()
+
+
+if __name__ == '__main__':
+    main()
