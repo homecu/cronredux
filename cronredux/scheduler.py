@@ -80,7 +80,7 @@ class Task(object):
         self.context_identer = itertools.count()
         self.crontab = crontab
         self.cmd = cmd
-        self.last_eta = crontab.next()
+        self.last_eta = crontab.next(default_utc=False)
         self.run_count = 0
         self.elapsed = pendulum.Interval()
 
@@ -91,7 +91,7 @@ class Task(object):
 
     def next_run(self):
         """ Estimated time of next run. """
-        return pendulum.Interval(seconds=self.crontab.next())
+        return pendulum.Interval(seconds=self.crontab.next(default_utc=False))
 
     @asyncio.coroutine
     def __call__(self, loop):
@@ -111,7 +111,7 @@ class Task(object):
         called as or more frequently than the cron period then it will skip or
         even never return true.  It is advised to call this at least double the
         minimum cron period of 1 minute, e.g. 30 seconds. """
-        next_eta = self.crontab.next()
+        next_eta = self.crontab.next(default_utc=False)
         r = self.last_eta < next_eta  # rollover occurred == ready
         self.last_eta = next_eta
         return r
