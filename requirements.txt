@@ -5,3 +5,4 @@ crontab==0.22.1
 aiohttp_jinja2==0.15.0
 pendulum==1.4.0
 typing==3.6.4
+jinja2==2.7
