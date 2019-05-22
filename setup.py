@@ -11,16 +11,9 @@ exec(compile(open(cronredux_version, 'r').read(), cronredux_version, 'exec'))
 with open('requirements.txt') as f:
     requirements = f.readlines()
 
-
-def long_desc():
-    try:
-        import pypandoc
-    except ImportError:
-        with open(README) as f:
-            return f.read()
-    else:
-        return pypandoc.convert(README, 'rst')
-
+long_description = None
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
 
 setup(
     name='cronredux',
@@ -30,7 +23,8 @@ setup(
     author_email='developers@homecu.com',
     url='https://github.com/homecu/cronredux/',
     license='MIT',
-    long_description=long_desc(),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     packages=find_packages(),
     test_suite='test',
     install_requires=requirements,
