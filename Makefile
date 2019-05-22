@@ -1,14 +1,11 @@
-VERSION:=3.0
-
 SOURCES:= \
 	MANIFEST.in \
 	requirements.txt \
 	$(wildcard **/*.py) \
 
-SDIST_TAR:=dist/cronredux-$(VERSION).tar.gz
-
 .PHONY: sdist
-sdist: $(SDIST_TAR)
+sdist: $(SOURCES)
+	python setup.py sdist
 
 .PHONY: test
 test: $(SOURCES)
@@ -20,6 +17,3 @@ clean:
 	-rm -r dist
 	-rm -r .tox
 	-rm -r cronredux.egg-info
-
-$(SDIST_TAR): $(SOURCES)
-	CRONREDUX_VERSION=$(VERSION) python setup.py sdist
