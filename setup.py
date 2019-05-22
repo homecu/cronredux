@@ -2,7 +2,11 @@ import os
 from setuptools import setup, find_packages
 
 README = 'README.md'
-VERSION = os.environ.get('CRONREDUX_VERSION', 'dev-build')
+
+cronredux_version = os.path.join(
+    os.path.abspath(os.path.dirname(__file__)), 'cronredux', '__init__.py')
+
+exec(compile(open(cronredux_version, 'r').read(), cronredux_version, 'exec'))
 
 with open('requirements.txt') as f:
     requirements = f.readlines()
